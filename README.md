@@ -3,7 +3,8 @@ goodhill-client-php
 
 PHP Client for Goodhill API
 
-Example usage:
+```php
+//Example usage:
 $api_key = '1234';
 $secret = '5678';
 $host = 'https://api.goodhill-solutions.com'
@@ -19,3 +20,4 @@ $settings = array(
 );
 
 $result = $GoodhillApi->search($settings);
+```
