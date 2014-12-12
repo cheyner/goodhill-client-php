@@ -27,5 +27,4 @@
  */
 
 require_once 'src/Goodhill/GoodhillException.php';
-require_once 'src/Goodhill/ClientContext.php';
 require_once 'src/Goodhill/Client.php';

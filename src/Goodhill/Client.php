@@ -34,7 +34,9 @@ namespace Goodhill;
  */
 class Client {
 
-    protected $context;
+    protected $apiKey;
+    protected $apiSecret;
+    protected $hostsArray;
 
     /*
      * Goodhill initialization
@@ -44,7 +46,9 @@ class Client {
      */
     function __construct($apiKey, $apiSecret, $hostsArray) {
 
-        $this->context = new ClientContext($apiKey, $apiSecret, $hostsArray);
+        $this->apiKey = $apiKey;
+        $this->apiSecret = $apiSecret;
+        $this->hostsArray = $hostsArray;
 
         if(!function_exists('curl_init')){
             throw new \Exception('Goodhill requires the CURL PHP extension.');
@@ -66,7 +70,6 @@ class Client {
      public function isAlive() {
 
         return $this->request(
-            $this->context,
             "GET",
             "/api/isalive"
         );
@@ -76,7 +79,6 @@ class Client {
      public function search($settings) {
 
         return $this->request(
-            $this->context,
             "POST",
             "/api/parts",
             array(),
@@ -88,7 +90,6 @@ class Client {
      public function search_get($settings) {
 
         return $this->request(
-            $this->context,
             "GET",
             "/api/parts",
             $settings
@@ -99,7 +100,6 @@ class Client {
      public function categories() {
 
         return $this->request(
-            $this->context,
             "GET",
             "/api/categories"
         );
@@ -109,7 +109,6 @@ class Client {
      public function category($id) {
 
         return $this->request(
-            $this->context,
             "GET",
             "/api/category/{$id}"
         );
@@ -142,7 +141,6 @@ class Client {
      public function attributes($params = array()) {
 
         return $this->request(
-            $this->context,
             "GET",
             "/api/attributes",
             $params
@@ -153,18 +151,17 @@ class Client {
      public function manufacturers() {
 
         return $this->request(
-            $this->context,
             "GET",
             "/api/manufacturers"
         );
 
      }
 
-    public function request($context, $method, $path, $params = array(), $data = array()) {
+    public function request($method, $path, $params = array(), $data = array()) {
         $exception = null;
-        foreach ($context->hostsArray as &$host) {
+        foreach ($this->hostsArray as &$host) {
             try {
-                $res = $this->doRequest($context, $method, $host, $path, $params, $data);
+                $res = $this->doRequest($method, $host, $path, $params, $data);
                 if ($res !== null)
                     return $res;
             } catch (GoodhillException $e) {
@@ -179,7 +176,7 @@ class Client {
             throw $exception;
     }
 
-    public function doRequest($context, $method, $host, $path, $params, $data) {
+    public function doRequest($method, $host, $path, $params, $data) {
         if (strpos($host, "http") === 0) {
             $url = $host . $path;
         } else {
@@ -200,9 +197,9 @@ class Client {
         curl_setopt($curlHandle, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($curlHandle, CURLOPT_FAILONERROR, true);
         curl_setopt($curlHandle, CURLOPT_ENCODING, '');
-        curl_setopt($curlHandle, CURLOPT_SSL_VERIFYPEER, true);
-        curl_setopt($curlHandle, CURLOPT_SSL_VERIFYHOST, 2);
-        curl_setopt($curlHandle, CURLOPT_CAINFO, __DIR__ . '/../../resources/ca-bundle.crt');
+        // curl_setopt($curlHandle, CURLOPT_SSL_VERIFYPEER, true);
+        // curl_setopt($curlHandle, CURLOPT_SSL_VERIFYHOST, 2);
+        // curl_setopt($curlHandle, CURLOPT_CAINFO, __DIR__ . '/../../resources/ca-bundle.crt');
 
         curl_setopt($curlHandle, CURLOPT_URL, $url);
         curl_setopt($curlHandle, CURLOPT_CONNECTTIMEOUT, 30);
@@ -230,7 +227,7 @@ class Client {
 
         $date = date('D, d M Y H:i:s O');
         $signature = $this->_getSignature(
-            $context->apiSecret,
+            $this->apiSecret,
             $method,
             $host,
             $url,
@@ -241,22 +238,12 @@ class Client {
         curl_setopt($curlHandle, CURLOPT_HTTPHEADER, array(
             'Content-type: application/json',
             'Date: ' . $date,
-            "Authorization: HMAC {$context->apiKey}:{$signature}",
+            "Authorization: HMAC {$this->apiKey}:{$signature}",
             "X-Auth-SignedHeaders: content-type;date;host"
         ));
 
-
-        $mhandle = $context->getMHandle($curlHandle);
-
-        // Do all the processing.
-        $running = null;
-        do {
-            curl_multi_exec($mhandle, $running);
-            curl_multi_select($mhandle);
-            usleep(100);
-        } while ($running > 0);
+        $response = curl_exec($curlHandle);
         $http_status = (int)curl_getinfo($curlHandle, CURLINFO_HTTP_CODE);
-        $response = curl_multi_getcontent($curlHandle);
         $error = curl_error($curlHandle);
 
         if (!empty($error)) {
@@ -264,12 +251,10 @@ class Client {
         }
         if ($http_status === 0 || $http_status === 503) {
             // Could not reach host or service unavailable, try with another one if we have it
-            $context->releaseMHandle($curlHandle);
             curl_close($curlHandle);
             return null;
         }
 
-        $context->releaseMHandle($curlHandle);
         curl_close($curlHandle);
 
         $answer = json_decode($response, true);
