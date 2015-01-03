@@ -198,9 +198,9 @@ class Client {
         curl_setopt($curlHandle, CURLOPT_FAILONERROR, true);
         curl_setopt($curlHandle, CURLOPT_ENCODING, '');
 
-        curl_setopt($curlHandle, CURLOPT_SSL_VERIFYPEER, false);
-        // curl_setopt($curlHandle, CURLOPT_SSL_VERIFYHOST, 2);
-        // curl_setopt($curlHandle, CURLOPT_CAINFO, __DIR__ . '/../../resources/ca-bundle.crt');
+        curl_setopt($curlHandle, CURLOPT_SSL_VERIFYPEER, true);
+        curl_setopt($curlHandle, CURLOPT_SSL_VERIFYHOST, 0);
+        curl_setopt($curlHandle, CURLOPT_CAINFO, __DIR__ . '/../../resources/api_goodhill-solutions_com.ca-bundle');
 
         curl_setopt($curlHandle, CURLOPT_URL, $url);
         curl_setopt($curlHandle, CURLOPT_CONNECTTIMEOUT, 30);
