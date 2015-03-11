@@ -129,7 +129,7 @@ class Client {
 
           $ancestry = array_merge(
             $ancestry,
-            $this->ancestry($category['data']['Category']['parent_id'])
+            $this->ancestry($result['data']['Category']['parent_id'])
           );
 
         }
