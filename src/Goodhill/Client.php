@@ -117,24 +117,10 @@ class Client {
 
      public function category_ancestry($id) {
 
-        $ancestry = array();
-
-        $result = $this->category($id);
-
-        if (!empty($result['data']['Category']['id'])) {
-          $ancestry[] = $result['data'];
-        }
-
-        if (!empty($result['data']['Category']['parent_id'])) {
-
-          $ancestry = array_merge(
-            $ancestry,
-            $this->ancestry($result['data']['Category']['parent_id'])
-          );
-
-        }
-
-        return $ancestry;
+        return $this->request(
+            "GET",
+            "/api/category/{$id}/ancestry"
+        );
 
      }
 
